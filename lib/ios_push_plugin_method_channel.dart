@@ -55,7 +55,6 @@ class MethodChannelIosPushPlugin extends IosPushPluginPlatform {
   }
 
   void notifyClickListener(dynamic data) {
-    print("onNotificationClick:args : $data");
     if (data != null && data is String && data.isNotEmpty) {
       data = jsonDecode(data);
     }

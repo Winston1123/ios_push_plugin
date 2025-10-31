@@ -1,8 +1,5 @@
 class RegisterException implements Exception {
-  const RegisterException({
-    this.errorCode,
-    this.error,
-  });
+  const RegisterException({this.errorCode, this.error});
 
   final String? errorCode;
 
