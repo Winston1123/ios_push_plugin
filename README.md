@@ -1,15 +1,31 @@
 # ios_push_plugin
 
-A new Flutter plugin project.
+A Flutter plugin for iOS push notifications.  
+⚠️ **iOS only**. Android is not supported.
+
+---
+
+## Features
+
+- Register for push notifications on iOS
+- Receive push notifications in foreground and background
+- Customizable notification handling
+- Easy-to-use Flutter API
+
+---
 
 ## Getting Started
 
-This project is a starting point for a Flutter
-[plug-in package](https://flutter.dev/to/develop-plugins),
-a specialized package that includes platform-specific implementation code for
-Android and/or iOS.
+### Requirements
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+- Flutter 3.x or above
+- iOS 11.0+
+- Xcode 13 or above
 
+### Installation
+
+Add this to your `pubspec.yaml`:
+
+```yaml
+dependencies:
+  ios_push_plugin: ^0.0.1
