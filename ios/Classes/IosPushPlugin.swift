@@ -1,3 +1,9 @@
+//
+//  Logger.swift
+//  ios_push_plugin
+//
+//  Created by zhangwentong(Winston) on 2025/11/01.
+//  Copyright (c) 
 import Flutter
 import UIKit
 import UserNotifications

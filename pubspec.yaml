@@ -1,6 +1,6 @@
 name: ios_push_plugin
 description: "iOS only plugin for handling APNs and system push notifications."
-version: 0.0.4
+version: 0.0.5
 homepage: https://github.com/Winston1123/ios_push_plugin
 repository: https://github.com/Winston1123/ios_push_plugin
 
