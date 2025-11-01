@@ -7,6 +7,7 @@ public class IosPushPlugin: NSObject, FlutterPlugin, UNUserNotificationCenterDel
     private var regId: String?
     private var notificationCallback: ((String?) -> Void)?
     private let manufacturer = "APPLE"
+    private var pendingRegIdResult: FlutterResult?
     
     init(channel: FlutterMethodChannel) {
         self.channel = channel
@@ -27,7 +28,12 @@ public class IosPushPlugin: NSObject, FlutterPlugin, UNUserNotificationCenterDel
         case "initPush":
             initPush(result: result)
         case "getRegId":
-            result(regId)
+            if let id = regId {
+                result(id)
+            } else {
+                // 暂存 result，等系统回调 didRegisterForRemoteNotifications 后返回
+                pendingRegIdResult = result
+            }
         case "getManufacturer":
             result(manufacturer)
         case "enableLog":
@@ -66,11 +72,14 @@ public class IosPushPlugin: NSObject, FlutterPlugin, UNUserNotificationCenterDel
         
         // 通知 Flutter
         channel.invokeMethod("onRegId", arguments: ["regId": token, "manufacturer": manufacturer])
+        // 如果 Flutter 有人在等 result，就返回
+        pendingRegIdResult?(token)
+        pendingRegIdResult = nil
     }
     
     public func application(_ application: UIApplication, didFailToRegisterForRemoteNotificationsWithError error: Error) {
         Logger.log("APNs register failed: \(error)")
-        channel.invokeMethod("onRegId", arguments: ["error": error.localizedDescription])
+        channel.invokeMethod("onError", arguments: ["error": error.localizedDescription])
     }
     
     // MARK: - Notification Callbacks

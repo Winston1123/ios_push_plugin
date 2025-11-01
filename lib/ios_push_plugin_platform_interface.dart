@@ -38,6 +38,17 @@ abstract class IosPushPluginPlatform extends PlatformInterface {
     throw UnimplementedError(
         'addNotificationClickListener() has not been implemented.');
   }
+  /// 设置注册ID回调
+  void setRegIdListener(RegIdCallback callback) {
+    throw UnimplementedError(
+        'addNotificationClickListener() has not been implemented.');
+  }
+
+  /// 设置错误回调
+  void setErrorListener(ErrorCallback callback) {
+    throw UnimplementedError(
+        'addNotificationClickListener() has not been implemented.');
+  }
 
   Future<String?> getManufacturer() {
     throw UnimplementedError(

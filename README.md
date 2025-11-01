@@ -1,31 +1,26 @@
 # ios_push_plugin
 
-A Flutter plugin for iOS push notifications.  
-⚠️ **iOS only**. Android is not supported.
+A Flutter plugin that provides **native iOS APNs (Apple Push Notification Service)** integration.  
+This plugin allows you to easily initialize APNs, retrieve the device token (`regId`), and handle push notification events.
 
 ---
 
-## Features
+## 🧩 Features
 
-- Register for push notifications on iOS
-- Receive push notifications in foreground and background
-- Customizable notification handling
-- Easy-to-use Flutter API
+- ✅ Initialize iOS Push Notification Service (`initPush`)
+- ✅ Retrieve device registration ID (`getRegId`)
+- ✅ Listen for real-time registration ID via `onRegId` event
+- ✅ Get iOS system version and manufacturer info
+- ✅ Handle push notification click callbacks (`onNotificationClick`)
+- ✅ Enable or disable internal logs (`enableLog(true/false)`)
 
 ---
 
-## Getting Started
+## 🚀 Installation
 
-### Requirements
-
-- Flutter 3.x or above
-- iOS 11.0+
-- Xcode 13 or above
-
-### Installation
-
-Add this to your `pubspec.yaml`:
+Add this line to your `pubspec.yaml`:
 
 ```yaml
 dependencies:
-  ios_push_plugin: ^0.0.1
+  ios_push_plugin: ^0.0.4
+

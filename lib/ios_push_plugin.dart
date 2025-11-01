@@ -26,4 +26,14 @@ class IosPushPlugin {
       onClickNotification,
     );
   }
+
+  /// 🔑 设置注册ID回调
+  static void setOnRegId(Function(String) onRegId) {
+    IosPushPluginPlatform.instance.setRegIdListener(onRegId);
+  }
+
+  /// ❌ 设置错误回调
+  static void setOnError(Function(String) onError) {
+    IosPushPluginPlatform.instance.setErrorListener(onError);
+  }
 }

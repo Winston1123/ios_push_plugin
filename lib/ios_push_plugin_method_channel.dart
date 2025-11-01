@@ -5,6 +5,9 @@ import 'dart:convert';
 
 import 'ios_push_plugin_platform_interface.dart';
 
+typedef RegIdCallback = void Function(String regId);
+typedef ErrorCallback = void Function(String error);
+
 /// An implementation of [IosPushPluginPlatform] that uses method channels.
 class MethodChannelIosPushPlugin extends IosPushPluginPlatform {
   /// The method channel used to interact with the native platform.
@@ -16,6 +19,8 @@ class MethodChannelIosPushPlugin extends IosPushPluginPlatform {
   }
 
   Function(dynamic)? onNotificationClick;
+  RegIdCallback? _onRegId;
+  ErrorCallback? _onError;
 
   @override
   Future<String?> getPlatformVersion() async {
@@ -49,6 +54,12 @@ class MethodChannelIosPushPlugin extends IosPushPluginPlatform {
       case 'onNotificationClick':
         notifyClickListener(methodCall.arguments);
         break;
+      case 'onRegId':
+        _notifyRegIdListener(methodCall.arguments);
+        break;
+      case 'onError':
+        _notifyErrorListener(methodCall.arguments);
+        break;
       default:
         break;
     }
@@ -62,9 +73,35 @@ class MethodChannelIosPushPlugin extends IosPushPluginPlatform {
     onNotificationClick?.call(data);
   }
 
+  void _notifyRegIdListener(dynamic args) {
+    if (args is Map && args['regId'] != null) {
+      _onRegId?.call(args['regId'] as String);
+    }
+  }
+
+  void _notifyErrorListener(dynamic args) {
+    if (args is Map && args['error'] != null) {
+      _onError?.call(args['error'] as String);
+    } else if (args is String) {
+      _onError?.call(args);
+    }
+  }
+
   @override
   void setNotificationClickListener(Function(dynamic) onNotificationClick) {
     this.onNotificationClick = onNotificationClick;
+  }
+
+  /// 设置注册ID回调
+  @override
+  void setRegIdListener(RegIdCallback callback) {
+    _onRegId = callback;
+  }
+
+  /// 设置错误回调
+  @override
+  void setErrorListener(ErrorCallback callback) {
+    _onError = callback;
   }
 
   @override

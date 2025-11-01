@@ -1,5 +1,22 @@
 # Changelog
 
+## [0.0.4] - 2025-11-01
+### Added
+- 新增 **`onRegId` 回调事件**，在设备成功注册 APNs 后自动触发，Flutter 端可实时获取 `regId`。
+- 支持异步获取 `regId`：当调用 `getRegId()` 时尚未生成 Token，会等待系统注册完成后返回。
+- 新增示例代码演示 `onRegId`、`onNotificationClick` 的监听方式。
+
+### Changed
+- 优化 `didRegisterForRemoteNotificationsWithDeviceToken` 逻辑，保证主线程安全调用。
+- 重构状态管理，防止重复回调或空引用。
+- 改进日志输出格式，使调试信息更易读。
+
+### Fixed
+- 修复 `initPush()` 早于 AppDelegate 初始化导致的 delegate 丢失问题。
+- 修复 `getRegId()` 可能返回 `null` 的问题。
+- 修复推送注册失败时未正确触发 Flutter 回调的问题。
+
+---
 ## [0.0.3] - 2025-10-31
 ### Added
 - 完善 iOS APNs 初始化逻辑，确保 Flutter 端 `initPush()` 能正确返回结果。

@@ -38,6 +38,16 @@ class MockIosPushPluginPlatform
   void setNotificationClickListener(Function(dynamic p1) onNotificationClick) {
     // TODO: implement setNotificationClickListener
   }
+  
+  @override
+  void setErrorListener(ErrorCallback callback) {
+    // TODO: implement setErrorListener
+  }
+  
+  @override
+  void setRegIdListener(RegIdCallback callback) {
+    // TODO: implement setRegIdListener
+  }
 }
 
 void main() {
