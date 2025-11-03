@@ -26,6 +26,7 @@ abstract class IosPushPluginPlatform extends PlatformInterface {
   Future<String?> getPlatformVersion() {
     throw UnimplementedError('platformVersion() has not been implemented.');
   }
+
   Future<dynamic> initPush() {
     throw UnimplementedError('initPush() has not been implemented.');
   }
@@ -36,32 +37,64 @@ abstract class IosPushPluginPlatform extends PlatformInterface {
 
   void setNotificationClickListener(Function(dynamic) onNotificationClick) {
     throw UnimplementedError(
-        'addNotificationClickListener() has not been implemented.');
+      'addNotificationClickListener() has not been implemented.',
+    );
   }
 
   void setNotificationReceiveListener(Function(dynamic) onNotificationReceive) {
     throw UnimplementedError(
-        'addNotificationReceiveListener() has not been implemented.');
+      'addNotificationReceiveListener() has not been implemented.',
+    );
   }
+
   /// 设置注册ID回调
   void setRegIdListener(RegIdCallback callback) {
     throw UnimplementedError(
-        'addNotificationClickListener() has not been implemented.');
+      'addNotificationClickListener() has not been implemented.',
+    );
   }
 
   /// 设置错误回调
   void setErrorListener(ErrorCallback callback) {
     throw UnimplementedError(
-        'addNotificationClickListener() has not been implemented.');
+      'addNotificationClickListener() has not been implemented.',
+    );
   }
 
   Future<String?> getManufacturer() {
     throw UnimplementedError(
-        'addNotificationClickListener() has not been implemented.');
+      'addNotificationClickListener() has not been implemented.',
+    );
   }
 
   void enableLog(bool enable) {
     throw UnimplementedError(
-        'addNotificationClickListener() has not been implemented.');
+      'addNotificationClickListener() has not been implemented.',
+    );
+  }
+
+  // --------------------- 新增取消监听方法 ---------------------
+  /// 取消通知点击监听
+  void removeNotificationClickListener() {
+    throw UnimplementedError(
+      'removeNotificationClickListener() has not been implemented.',
+    );
+  }
+
+  /// 取消通知接收监听
+  void removeNotificationReceiveListener() {
+    throw UnimplementedError(
+      'removeNotificationReceiveListener() has not been implemented.',
+    );
+  }
+
+  /// 取消注册ID监听
+  void removeRegIdListener() {
+    throw UnimplementedError('removeRegIdListener() has not been implemented.');
+  }
+
+  /// 取消错误回调监听
+  void removeErrorListener() {
+    throw UnimplementedError('removeErrorListener() has not been implemented.');
   }
 }

@@ -8,11 +8,14 @@
 ## ✨ 特性 (Features)
 
 ✅ 一行代码初始化推送  
-✅ 自动回调注册 ID (`onRegId`)  
-✅ 通知点击事件回调 (`onNotificationClick`)  
+✅ 异步获取注册 ID (`getRegId`)  
+✅ 通知点击事件回调 (`clickNotifications` / `getClickNotification`)  
+✅ 通知接收事件回调 (`receiveNotifications` / `getReceiveNotification`)  
+✅ Stream 版本持续监听推送，适合实时 UI 更新  
+✅ Future 版本一次性回调，获取完成后自动取消监听  
 ✅ 错误捕获回调 (`onError`)  
 ✅ 日志可控 (`enableLog`)  
-✅ 异步获取 `regId`，即便初始化未完成也能自动等待返回  
+✅ 自动反序列化 `NotificationContent`，包括 `payload` 和 `custom_data`
 
 ---
 
@@ -20,6 +23,5 @@
 
 ```yaml
 dependencies:
-  ios_push_plugin: ^0.0.6
-
-
+  ios_push_plugin: ^0.0.7
+```

@@ -1,5 +1,9 @@
-import 'ios_push_plugin_platform_interface.dart';
+import 'package:flutter/foundation.dart';
+import 'package:ios_push_plugin/model/notification_content.dart';
 
+import 'ios_push_plugin_platform_interface.dart';
+import 'dart:convert';
+import 'dart:async';
 //
 //  IosPushPlugin.swift
 //  ios_push_plugin
@@ -94,8 +98,16 @@ class IosPushPlugin {
   /// final regId = await IosPushPlugin.getRegId();
   /// print('RegId: $regId');
   /// ```
-  static Future<String?> getRegId() async {
-    return await IosPushPluginPlatform.instance.getRegId();
+  static Future<String?> getRegId() {
+    final completer = Completer<String?>();
+
+    IosPushPluginPlatform.instance.setRegIdListener((regId) {
+      completer.complete(regId);
+      // 获取完成后取消监听
+      IosPushPluginPlatform.instance.removeRegIdListener();
+    });
+
+    return completer.future;
   }
 
   /// 🏭 获取设备厂商信息。
@@ -181,5 +193,67 @@ class IosPushPlugin {
   /// ❌ 设置错误回调
   static void setOnError(Function(String) onError) {
     IosPushPluginPlatform.instance.setErrorListener(onError);
+  }
+
+  static final _clickController =
+      StreamController<NotificationContent>.broadcast();
+  static final _receiveController =
+      StreamController<NotificationContent>.broadcast();
+  static bool _listenersInitialized = false;
+
+  static void _initListeners() {
+    if (_listenersInitialized) return;
+    _listenersInitialized = true;
+
+    // 点击通知
+    IosPushPluginPlatform.instance.setNotificationClickListener((data) {
+      final content = _deserializeNotification(data);
+      if (content != null) _clickController.add(content);
+    });
+
+    // 收到通知
+    IosPushPluginPlatform.instance.setNotificationReceiveListener((data) {
+      final content = _deserializeNotification(data);
+      if (content != null) _receiveController.add(content);
+    });
+  }
+
+  /// 🔔 Stream 版本：点击通知，持续监听
+  static Stream<NotificationContent> get clickNotifications {
+    _initListeners();
+    return _clickController.stream;
+  }
+
+  /// 🔔 Stream 版本：收到通知，持续监听
+  static Stream<NotificationContent> get receiveNotifications {
+    _initListeners();
+    return _receiveController.stream;
+  }
+
+  /// 内部工具：反序列化 NotificationContent
+  static NotificationContent? _deserializeNotification(dynamic data) {
+    try {
+      if (data == null) return null;
+      if (data is String) {
+        return NotificationContent.fromJson(jsonDecode(data));
+      } else if (data is Map<String, dynamic>) {
+        return NotificationContent.fromJson(data);
+      }
+    } catch (e, st) {
+      debugPrint('Notification deserialization error: $e\n$st');
+    }
+    return null;
+  }
+
+  /// 可选：关闭流和取消通知监听
+  static void dispose() {
+    if (_listenersInitialized) {
+      _clickController.close();
+      _receiveController.close();
+      _listenersInitialized = false;
+      // 取消原生回调监听
+      IosPushPluginPlatform.instance.removeNotificationClickListener();
+      IosPushPluginPlatform.instance.removeNotificationReceiveListener();
+    }
   }
 }

@@ -7,51 +7,72 @@ import 'package:plugin_platform_interface/plugin_platform_interface.dart';
 class MockIosPushPluginPlatform
     with MockPlatformInterfaceMixin
     implements IosPushPluginPlatform {
-
   @override
   Future<String?> getPlatformVersion() => Future.value('42');
-  
+
   @override
   void enableLog(bool enable) {
     // TODO: implement enableLog
   }
-  
+
   @override
   Future<String?> getManufacturer() {
     // TODO: implement getManufacturer
     throw UnimplementedError();
   }
-  
+
   @override
   Future<String?> getRegId() {
     // TODO: implement getRegId
     throw UnimplementedError();
   }
-  
+
   @override
   Future initPush() {
     // TODO: implement initPush
     throw UnimplementedError();
   }
-  
+
   @override
   void setNotificationClickListener(Function(dynamic p1) onNotificationClick) {
     // TODO: implement setNotificationClickListener
   }
-  
+
   @override
   void setErrorListener(ErrorCallback callback) {
     // TODO: implement setErrorListener
   }
-  
+
   @override
   void setRegIdListener(RegIdCallback callback) {
     // TODO: implement setRegIdListener
   }
-  
+
   @override
-  void setNotificationReceiveListener(Function(dynamic p1) onNotificationReceive) {
+  void setNotificationReceiveListener(
+    Function(dynamic p1) onNotificationReceive,
+  ) {
     // TODO: implement setNotificationReceiveListener
+  }
+
+  @override
+  void removeErrorListener() {
+    // TODO: implement removeErrorListener
+  }
+
+  @override
+  void removeNotificationClickListener() {
+    // TODO: implement removeNotificationClickListener
+  }
+
+  @override
+  void removeNotificationReceiveListener() {
+    // TODO: implement removeNotificationReceiveListener
+  }
+
+  @override
+  void removeRegIdListener() {
+    // TODO: implement removeRegIdListener
   }
 }
 

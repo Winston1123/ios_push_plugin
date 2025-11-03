@@ -126,4 +126,28 @@ class MethodChannelIosPushPlugin extends IosPushPluginPlatform {
   Future<String?> getManufacturer() async {
     return await methodChannel.invokeMethod('getManufacturer');
   }
+
+  /// 取消通知点击监听
+  @override
+  void removeNotificationClickListener() {
+    onNotificationClick = null;
+  }
+
+  /// 取消通知收到监听
+  @override
+  void removeNotificationReceiveListener() {
+    onNotificationReceive = null;
+  }
+
+  /// 取消 RegId 监听
+  @override
+  void removeRegIdListener() {
+    _onRegId = null;
+  }
+
+  /// 取消错误回调监听
+  @override
+  void removeErrorListener() {
+    _onError = null;
+  }
 }
