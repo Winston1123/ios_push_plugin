@@ -88,7 +88,12 @@ class IosPushPlugin {
     return await IosPushPluginPlatform.instance.initPush();
   }
 
-  /// 🔑 获取设备注册 ID（APNs Token）。
+  /// 🔑 获取设备注册 ID（APNs Token）。 建议还是使用onRegId方法
+  /// ```dart
+  /// static void setOnRegId(Function(String) onRegId) {
+  ///   IosPushPluginPlatform.instance.setRegIdListener(onRegId);
+  /// }
+  /// ```
   ///
   /// - 若已注册，则立即返回。
   /// - 若注册尚未完成，将等待系统返回后异步返回。
@@ -98,16 +103,8 @@ class IosPushPlugin {
   /// final regId = await IosPushPlugin.getRegId();
   /// print('RegId: $regId');
   /// ```
-  static Future<String?> getRegId() {
-    final completer = Completer<String?>();
-
-    IosPushPluginPlatform.instance.setRegIdListener((regId) {
-      completer.complete(regId);
-      // 获取完成后取消监听
-      IosPushPluginPlatform.instance.removeRegIdListener();
-    });
-
-    return completer.future;
+  static Future<String?> getRegId() async {
+    return await IosPushPluginPlatform.instance.getRegId();
   }
 
   /// 🏭 获取设备厂商信息。
