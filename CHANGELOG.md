@@ -1,6 +1,32 @@
 # Changelog
 
+## [0.0.6] - 2025-11-03
 
+### 🚀 Added
+- 新增 `setOnReceiveNotification(Function(Map))` 回调事件：App 前台收到通知时触发，可立即获取通知内容，便于 UI 更新或消息处理。  
+- 新增 `getPendingNotifications()` 接口：获取当前待处理的本地或远程推送列表，支持批量管理与展示。  
+- 示例 `Example` 中新增：
+  - 前台推送接收演示：`setOnReceiveNotification()`  
+  - 获取待处理通知列表：`getPendingNotifications()`  
+  - 日志示例结合前台与后台通知，便于调试全流程消息。
+
+### ⚙️ Changed
+- 优化通知回调顺序：
+  - 前台通知先触发 `onReceiveNotification`，点击通知后再触发 `onClickNotification`。  
+- 改进 iOS 通知权限流程：
+  - 避免重复弹窗  
+  - 修复冷启动点击通知时回调延迟问题  
+- 文档更新：
+  - 新增前台通知处理示意图  
+  - 补充 `getPendingNotifications` 使用示例  
+  - 增强调试日志示例说明
+
+### 🐛 Fixed
+- 修复 iOS 17+ 前台通知不显示 alert 时回调丢失问题  
+- 修复 `setOnClickNotification()` 在 App 冷启动时可能丢失的 edge case  
+- 修复 Android 13+ 部分设备上通知权限拒绝后重复请求的问题
+
+---
 ## [0.0.5] - 2025-11-01
 
 ### 🚀 Added

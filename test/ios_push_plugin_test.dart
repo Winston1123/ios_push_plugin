@@ -48,6 +48,11 @@ class MockIosPushPluginPlatform
   void setRegIdListener(RegIdCallback callback) {
     // TODO: implement setRegIdListener
   }
+  
+  @override
+  void setNotificationReceiveListener(Function(dynamic p1) onNotificationReceive) {
+    // TODO: implement setNotificationReceiveListener
+  }
 }
 
 void main() {

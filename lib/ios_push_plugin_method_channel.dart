@@ -19,6 +19,8 @@ class MethodChannelIosPushPlugin extends IosPushPluginPlatform {
   }
 
   Function(dynamic)? onNotificationClick;
+  Function(dynamic)? onNotificationReceive;
+
   RegIdCallback? _onRegId;
   ErrorCallback? _onError;
 
@@ -54,6 +56,9 @@ class MethodChannelIosPushPlugin extends IosPushPluginPlatform {
       case 'onNotificationClick':
         notifyClickListener(methodCall.arguments);
         break;
+      case 'onNotificationReceive':
+        notifyReceiveListener(methodCall.arguments);
+        break;
       case 'onRegId':
         _notifyRegIdListener(methodCall.arguments);
         break;
@@ -73,6 +78,14 @@ class MethodChannelIosPushPlugin extends IosPushPluginPlatform {
     onNotificationClick?.call(data);
   }
 
+  void notifyReceiveListener(dynamic data) {
+    if (data != null && data is String && data.isNotEmpty) {
+      data = jsonDecode(data);
+    }
+
+    onNotificationReceive?.call(data);
+  }
+
   void _notifyRegIdListener(dynamic args) {
     if (args is Map && args['regId'] != null) {
       _onRegId?.call(args['regId'] as String);
@@ -90,6 +103,11 @@ class MethodChannelIosPushPlugin extends IosPushPluginPlatform {
   @override
   void setNotificationClickListener(Function(dynamic) onNotificationClick) {
     this.onNotificationClick = onNotificationClick;
+  }
+
+  @override
+  void setNotificationReceiveListener(Function(dynamic) onNotificationReceive) {
+    this.onNotificationReceive = onNotificationReceive;
   }
 
   /// 设置注册ID回调

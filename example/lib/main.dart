@@ -59,7 +59,10 @@ class _MyAppState extends State<MyApp> {
     IosPushPlugin.setOnError((err) {
       debugPrint('❌ onError 回调: $err');
     });
-
+    IosPushPlugin.setOnReceiveNotification((data) {
+      debugPrint('🔔 通知收到: $data');
+      setState(() => _lastMessage = jsonEncode(data));
+    });
     IosPushPlugin.setOnClickNotification((data) {
       debugPrint('🔔 通知点击: $data');
       setState(() => _lastMessage = jsonEncode(data));

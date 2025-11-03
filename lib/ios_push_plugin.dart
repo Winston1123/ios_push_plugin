@@ -134,6 +134,25 @@ class IosPushPlugin {
     );
   }
 
+  /// 🔔 设置通知收到回调。
+  ///
+  /// 当用户收到推送消息（无论应用在前台或后台），
+  /// 原生层会回调此方法并携带推送 payload。
+  ///
+  /// 示例：
+  /// ```dart
+  /// IosPushPlugin.setOnReceiveNotification((data) {
+  ///   print('Notification data: $data');
+  /// });
+  /// ```
+  static void setOnReceiveNotification(
+    Function(dynamic) onReceiveNotification,
+  ) {
+    IosPushPluginPlatform.instance.setNotificationReceiveListener(
+      onReceiveNotification,
+    );
+  }
+
   /// 🧩 设置注册 ID（deviceToken）更新回调。
   ///
   /// 用于在注册成功时接收 token。

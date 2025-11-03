@@ -11,7 +11,8 @@ import UserNotifications
 public class IosPushPlugin: NSObject, FlutterPlugin, UNUserNotificationCenterDelegate {
     private var channel: FlutterMethodChannel
     private var regId: String?
-    private var notificationCallback: ((String?) -> Void)?
+    private var notificationCallback: ((Any) -> Void)?
+    private var notificationReceiveCallback: ((Any) -> Void)?
     private let manufacturer = "APPLE"
     private var pendingRegIdResult: FlutterResult?
     
@@ -48,7 +49,10 @@ public class IosPushPlugin: NSObject, FlutterPlugin, UNUserNotificationCenterDel
             }
             result(nil)
         case "setNotificationClickListener":
-            notificationCallback = call.arguments as? ((String?) -> Void)
+            notificationCallback = call.arguments as? ((Any) -> Void)
+            result(nil)
+        case "setNotificationReceiveListener":
+            notificationReceiveCallback = call.arguments as? ((Any) -> Void)
             result(nil)
         default:
             result(FlutterMethodNotImplemented)
@@ -89,29 +93,56 @@ public class IosPushPlugin: NSObject, FlutterPlugin, UNUserNotificationCenterDel
     }
     
     // MARK: - Notification Callbacks
-    
+    /// 当 App 在前台时收到推送通知（包括远程推送和本地通知）会触发此方法。
+    ///
+    /// - Parameters:
+    ///   - center: 通知中心对象。
+    ///   - notification: 收到的通知对象，包含标题、内容和自定义 payload（userInfo）。
+    ///   - completionHandler: 通知展示的回调，必须调用，否则通知不会显示。
+    ///
+    /// - Note:
+    ///   * 默认情况下，App 处于前台时系统不会展示通知横幅。
+    ///   * 若希望展示通知提醒（如声音或弹窗），需调用 completionHandler 并传入展示选项。
+    ///   * 此方法仅代表「通知已到达」，**用户尚未点击**。
     public func userNotificationCenter(_ center: UNUserNotificationCenter,
                                        willPresent notification: UNNotification,
                                        withCompletionHandler completionHandler: @escaping (UNNotificationPresentationOptions) -> Void) {
-        let userInfo = notification.request.content.userInfo
+        let content = notification.request.content
         completionHandler([.alert, .sound])
-        onMessage(userInfo: userInfo)
+        onMessageReceive(content: content)
+
     }
-    
+    /// 当用户点击通知（无论 App 在前台、后台或被杀死）时会触发此方法。
+    ///
+    /// - Parameters:
+    ///   - center: 通知中心对象。
+    ///   - response: 用户对通知的响应，包含通知内容和点击行为。
+    ///   - completionHandler: 系统回调，必须在处理完成后调用。
+    ///
+    /// - Note:
+    ///   * 用户点击通知横幅、锁屏通知或通知中心的消息都会触发。
+    ///   * 在这里通常处理导航跳转、数据统计或打开具体页面。
     public func userNotificationCenter(_ center: UNUserNotificationCenter,
                                        didReceive response: UNNotificationResponse,
                                        withCompletionHandler completionHandler: @escaping () -> Void) {
-        let userInfo = response.notification.request.content.userInfo
-        onMessage(userInfo: userInfo)
+        let content = response.notification.request.content
+        onMessageClick(content: content)
         completionHandler()
     }
     
-    private func onMessage(userInfo: [AnyHashable: Any]) {
-        Logger.log("Notification received: \(userInfo)")
+    private func onMessageReceive(content: UNNotificationContent) {
+        Logger.log("Notification received: \(content)")
         // 通过回调发送到 Flutter
-        let data = (userInfo["aps"] as? [String: Any])?["attributes"] as? [String: Any]? ?? nil
-        notificationCallback?(data?["data"] as? String)
-        channel.invokeMethod("onNotificationClick", arguments: data?["data"] as? String)
+       
+        notificationReceiveCallback?(content.toJSONString())
+        channel.invokeMethod("onNotificationReceive", arguments: content.toJSONString())
+    }
+    private func onMessageClick(content: UNNotificationContent) {
+        Logger.log("Notification received: \(content)")
+        // 通过回调发送到 Flutter
+     
+        notificationCallback?(content.toJSONString())
+        channel.invokeMethod("onNotificationClick", arguments: content.toJSONString())
     }
 }
 extension UNNotificationCategoryOptions {
@@ -130,4 +161,66 @@ extension UNNotificationCategoryOptions {
         }
         return r
     }()
+}
+
+
+extension UNNotificationContent {
+    /// 将通知内容完整序列化为 Dictionary
+    func toFullDictionary() -> [String: Any] {
+        var dict: [String: Any] = [
+            "title": title,
+            "subtitle": subtitle,
+            "body": body,
+            "categoryIdentifier": categoryIdentifier,
+            "threadIdentifier": threadIdentifier,
+            "launchImageName": launchImageName,
+            "userInfo": userInfo
+        ]
+        
+        if let badge = badge { dict["badge"] = badge }
+        if let sound = sound { dict["sound"] = String(describing: sound) }
+        
+        if #available(iOS 12.0, *) {
+            dict["summaryArgument"] = summaryArgument
+            dict["summaryArgumentCount"] = summaryArgumentCount
+        }
+        
+        if #available(iOS 13.0, *) {
+            dict["targetContentIdentifier"] = targetContentIdentifier ?? NSNull()
+        }
+        
+        if #available(iOS 15.0, *) {
+            dict["interruptionLevel"] = interruptionLevel.rawValue
+            dict["relevanceScore"] = relevanceScore
+        }
+        
+        if #available(iOS 16.0, *) {
+            dict["filterCriteria"] = filterCriteria ?? NSNull()
+        }
+        
+        if !attachments.isEmpty {
+            dict["attachments"] = attachments.map { att in
+                [
+                    "identifier": att.identifier,
+                    "url": att.url.absoluteString,
+                    "type": att.type
+                ]
+            }
+        } else {
+            dict["attachments"] = []
+        }
+        
+        return dict
+    }
+    
+    /// 将通知内容序列化为 JSON 字符串（便于日志或跨平台传输）
+    func toJSONString(pretty: Bool = true) -> String {
+        let dict = toFullDictionary()
+        let options: JSONSerialization.WritingOptions = pretty ? [.prettyPrinted] : []
+        guard let data = try? JSONSerialization.data(withJSONObject: dict, options: options),
+              let json = String(data: data, encoding: .utf8) else {
+            return "{}"
+        }
+        return json
+    }
 }
