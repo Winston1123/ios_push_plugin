@@ -15,8 +15,7 @@ public class IosPushPlugin: NSObject, FlutterPlugin, UNUserNotificationCenterDel
     private var notificationReceiveCallback: ((Any) -> Void)?
     private let manufacturer = "APPLE"
     private var pendingRegIdResult: FlutterResult?
-    // 1️⃣ 在类里添加属性
-    private var launchNotification: [AnyHashable: Any]?  // 暂存冷启动通知
+    
     
     init(channel: FlutterMethodChannel) {
         self.channel = channel
@@ -79,7 +78,7 @@ public class IosPushPlugin: NSObject, FlutterPlugin, UNUserNotificationCenterDel
     // MARK: - AppDelegate Hooks
     public func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [AnyHashable : Any] = [:]) -> Bool {
         if let launchNotification = launchOptions[UIApplication.LaunchOptionsKey.remoteNotification] as? [AnyHashable: Any] {
-            self.launchNotification = launchNotification
+            UserDefaults.standard.set(launchNotification, forKey: "PendingNotification")
         }
         return true
     }
@@ -124,7 +123,7 @@ public class IosPushPlugin: NSObject, FlutterPlugin, UNUserNotificationCenterDel
         let content = notification.request.content
         completionHandler([.alert, .sound])
         onMessageReceive(content: content)
-
+        
     }
     /// 当用户点击通知（无论 App 在前台、后台或被杀死）时会触发此方法。
     ///
@@ -147,24 +146,24 @@ public class IosPushPlugin: NSObject, FlutterPlugin, UNUserNotificationCenterDel
     private func onMessageReceive(content: UNNotificationContent) {
         Logger.log("Notification received: \(content)")
         // 通过回调发送到 Flutter
-       
+        
         notificationReceiveCallback?(content.toJSONString())
         channel.invokeMethod("onNotificationReceive", arguments: content.toJSONString())
         // 清空
-        launchNotification = nil
+        UserDefaults.standard.removeObject(forKey: "PendingNotification")
     }
     private func onMessageClick(content: UNNotificationContent) {
         Logger.log("Notification received: \(content)")
         // 通过回调发送到 Flutter
-     
+        
         notificationCallback?(content.toJSONString())
         channel.invokeMethod("onNotificationClick", arguments: content.toJSONString())
         // 清空
-        launchNotification = nil
+        UserDefaults.standard.removeObject(forKey: "PendingNotification")
     }
     // 2️⃣ 在 Flutter 调用 setNotificationClickListener 时，触发冷启动通知
     private func dispatchLaunchNotificationIfNeeded() {
-        guard let userInfo = launchNotification else { return }
+        guard let userInfo = UserDefaults.standard.object(forKey: "PendingNotification") else { return }
         
         Logger.log("Dispatching cold-start notification: \(userInfo)")
         let content = ["userInfo":userInfo]
@@ -175,7 +174,7 @@ public class IosPushPlugin: NSObject, FlutterPlugin, UNUserNotificationCenterDel
         channel.invokeMethod("onNotificationClick", arguments: content.toJSONString())
         
         // 清空
-        launchNotification = nil
+        UserDefaults.standard.removeObject(forKey: "PendingNotification")
     }
 }
 extension UNNotificationCategoryOptions {
@@ -260,7 +259,7 @@ extension UNNotificationContent {
 extension Dictionary where Key == String {
     func toJSONString(pretty: Bool = true) -> String {
         let options: JSONSerialization.WritingOptions = pretty ? [.prettyPrinted] : []
-
+        
         guard
             JSONSerialization.isValidJSONObject(self),
             let data = try? JSONSerialization.data(withJSONObject: self, options: options),
@@ -268,7 +267,7 @@ extension Dictionary where Key == String {
         else {
             return "{}"
         }
-
+        
         return json
     }
 }

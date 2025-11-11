@@ -23,5 +23,5 @@
 
 ```yaml
 dependencies:
-  ios_push_plugin: ^0.0.7
+  ios_push_plugin: ^0.1.0
 ```
