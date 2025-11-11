@@ -15,6 +15,8 @@ public class IosPushPlugin: NSObject, FlutterPlugin, UNUserNotificationCenterDel
     private var notificationReceiveCallback: ((Any) -> Void)?
     private let manufacturer = "APPLE"
     private var pendingRegIdResult: FlutterResult?
+    // 1️⃣ 在类里添加属性
+    private var launchNotification: [AnyHashable: Any]?  // 暂存冷启动通知
     
     init(channel: FlutterMethodChannel) {
         self.channel = channel
@@ -50,6 +52,7 @@ public class IosPushPlugin: NSObject, FlutterPlugin, UNUserNotificationCenterDel
             result(nil)
         case "setNotificationClickListener":
             notificationCallback = call.arguments as? ((Any) -> Void)
+            dispatchLaunchNotificationIfNeeded()
             result(nil)
         case "setNotificationReceiveListener":
             notificationReceiveCallback = call.arguments as? ((Any) -> Void)
@@ -74,7 +77,18 @@ public class IosPushPlugin: NSObject, FlutterPlugin, UNUserNotificationCenterDel
     }
     
     // MARK: - AppDelegate Hooks
+    public func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [AnyHashable : Any] = [:]) -> Bool {
+        if let launchNotification = launchOptions[UIApplication.LaunchOptionsKey.remoteNotification] as? [AnyHashable: Any] {
+            self.launchNotification = launchNotification
+        }
+        return true
+    }
+    public func applicationDidEnterBackground(_ application: UIApplication) {
+    }
     
+    public func applicationDidBecomeActive(_ application: UIApplication) {
+        UIApplication.shared.applicationIconBadgeNumber = -1;
+    }
     public func application(_ application: UIApplication, didRegisterForRemoteNotificationsWithDeviceToken deviceToken: Data) {
         let token = deviceToken.map { String(format: "%02.2hhx", $0) }.joined()
         self.regId = token
@@ -136,6 +150,8 @@ public class IosPushPlugin: NSObject, FlutterPlugin, UNUserNotificationCenterDel
        
         notificationReceiveCallback?(content.toJSONString())
         channel.invokeMethod("onNotificationReceive", arguments: content.toJSONString())
+        // 清空
+        launchNotification = nil
     }
     private func onMessageClick(content: UNNotificationContent) {
         Logger.log("Notification received: \(content)")
@@ -143,6 +159,23 @@ public class IosPushPlugin: NSObject, FlutterPlugin, UNUserNotificationCenterDel
      
         notificationCallback?(content.toJSONString())
         channel.invokeMethod("onNotificationClick", arguments: content.toJSONString())
+        // 清空
+        launchNotification = nil
+    }
+    // 2️⃣ 在 Flutter 调用 setNotificationClickListener 时，触发冷启动通知
+    private func dispatchLaunchNotificationIfNeeded() {
+        guard let userInfo = launchNotification else { return }
+        
+        Logger.log("Dispatching cold-start notification: \(userInfo)")
+        let content = ["userInfo":userInfo]
+        // 先调用 Flutter 回调
+        notificationCallback?(content.toJSONString())
+        
+        // 通过 channel 发送给 Flutter
+        channel.invokeMethod("onNotificationClick", arguments: content.toJSONString())
+        
+        // 清空
+        launchNotification = nil
     }
 }
 extension UNNotificationCategoryOptions {
@@ -221,6 +254,21 @@ extension UNNotificationContent {
               let json = String(data: data, encoding: .utf8) else {
             return "{}"
         }
+        return json
+    }
+}
+extension Dictionary where Key == String {
+    func toJSONString(pretty: Bool = true) -> String {
+        let options: JSONSerialization.WritingOptions = pretty ? [.prettyPrinted] : []
+
+        guard
+            JSONSerialization.isValidJSONObject(self),
+            let data = try? JSONSerialization.data(withJSONObject: self, options: options),
+            let json = String(data: data, encoding: .utf8)
+        else {
+            return "{}"
+        }
+
         return json
     }
 }
