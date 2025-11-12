@@ -3,30 +3,30 @@
 //  ios_push_plugin
 //
 //  Created by zhangwentong(Winston) on 2025/11/01.
-//  Copyright (c) 
+//  Copyright (c)
 import Flutter
 import UIKit
 import UserNotifications
 
 public class IosPushPlugin: NSObject, FlutterPlugin, UNUserNotificationCenterDelegate {
-    private var channel: FlutterMethodChannel
-    private var regId: String?
-    private var notificationCallback: ((Any) -> Void)?
-    private var notificationReceiveCallback: ((Any) -> Void)?
     private let manufacturer = "APPLE"
-    private var pendingRegIdResult: FlutterResult?
+    private let messageEventChannel: MessageEventChannel = MessageEventChannel()
+    private var channel: FlutterMethodChannel?
     
     
-    init(channel: FlutterMethodChannel) {
-        self.channel = channel
-        super.init()
-    }
     
     public static func register(with registrar: FlutterPluginRegistrar) {
         let channel = FlutterMethodChannel(name: "ios_push_plugin", binaryMessenger: registrar.messenger())
-        let instance = IosPushPlugin(channel: channel)
+        let instance:IosPushPlugin = IosPushPlugin()
+        instance.channel =  FlutterMethodChannel(name: "ios_push_plugin/callback", binaryMessenger: registrar.messenger())
         registrar.addApplicationDelegate(instance)
         registrar.addMethodCallDelegate(instance, channel: channel)
+        
+        // EventChannel
+        let eventChannel = FlutterEventChannel(
+            name: "ios_push_plugin/events",
+            binaryMessenger: registrar.messenger())
+        eventChannel.setStreamHandler(instance.messageEventChannel)
     }
     
     public func handle(_ call: FlutterMethodCall, result: @escaping FlutterResult) {
@@ -34,14 +34,13 @@ public class IosPushPlugin: NSObject, FlutterPlugin, UNUserNotificationCenterDel
         case "getPlatformVersion":
             result("iOS " + UIDevice.current.systemVersion)
         case "initPush":
-            initPush(result: result)
-        case "getRegId":
-            if let id = regId {
-                result(id)
-            } else {
-                // 暂存 result，等系统回调 didRegisterForRemoteNotifications 后返回
-                pendingRegIdResult = result
-            }
+            UNUserNotificationCenter.current().delegate = self
+            result(nil)
+        case "requestPermission":
+            requestNotificationPermission(result: result)
+        case "register":
+            registerAPNs(result: result)
+            result(nil)
         case "getManufacturer":
             result(manufacturer)
         case "enableLog":
@@ -49,39 +48,33 @@ public class IosPushPlugin: NSObject, FlutterPlugin, UNUserNotificationCenterDel
                 Logger.isEnabled = isEnabled
             }
             result(nil)
-        case "setNotificationClickListener":
-            notificationCallback = call.arguments as? ((Any) -> Void)
-            dispatchLaunchNotificationIfNeeded()
-            result(nil)
-        case "setNotificationReceiveListener":
-            notificationReceiveCallback = call.arguments as? ((Any) -> Void)
-            result(nil)
         default:
             result(FlutterMethodNotImplemented)
         }
     }
     
-    private func initPush(result: @escaping FlutterResult) {
-        UNUserNotificationCenter.current().delegate = self
+    // MARK: - 📱 APNs Registration
+    private func registerAPNs(result: @escaping FlutterResult) {
+        Logger.log("🚀 Registering for APNs...")
+        DispatchQueue.main.async {
+            UIApplication.shared.registerForRemoteNotifications()
+        }
+    }
+    
+    private func requestNotificationPermission(result: @escaping FlutterResult) {
         UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound, .badge]) { granted, error in
-            DispatchQueue.main.async {
-                if granted {
-                    UIApplication.shared.registerForRemoteNotifications()
-                    result("APNs Init Success")
-                } else {
-                    result(FlutterError(code: "10086", message: "APNs permission denied", details: nil))
-                }
+            if let error = error {
+                Logger.log("Error requesting notification permissions: \(error.localizedDescription)")
+                result(false)
+            } else {
+                result(granted)
+                Logger.log("Permission granted: \(granted)")
             }
         }
     }
     
     // MARK: - AppDelegate Hooks
-    public func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [AnyHashable : Any] = [:]) -> Bool {
-        if let launchNotification = launchOptions[UIApplication.LaunchOptionsKey.remoteNotification] as? [AnyHashable: Any] {
-            UserDefaults.standard.set(launchNotification, forKey: "PendingNotification")
-        }
-        return true
-    }
+    
     public func applicationDidEnterBackground(_ application: UIApplication) {
     }
     
@@ -90,19 +83,14 @@ public class IosPushPlugin: NSObject, FlutterPlugin, UNUserNotificationCenterDel
     }
     public func application(_ application: UIApplication, didRegisterForRemoteNotificationsWithDeviceToken deviceToken: Data) {
         let token = deviceToken.map { String(format: "%02.2hhx", $0) }.joined()
-        self.regId = token
         Logger.log("APNs register success: \(token)")
+        channel?.invokeMethod("onCompleted",arguments: token)
         
-        // 通知 Flutter
-        channel.invokeMethod("onRegId", arguments: ["regId": token, "manufacturer": manufacturer])
-        // 如果 Flutter 有人在等 result，就返回
-        pendingRegIdResult?(token)
-        pendingRegIdResult = nil
     }
     
     public func application(_ application: UIApplication, didFailToRegisterForRemoteNotificationsWithError error: Error) {
         Logger.log("APNs register failed: \(error)")
-        channel.invokeMethod("onError", arguments: ["error": error.localizedDescription])
+        channel?.invokeMethod("onError", arguments: ["error": error.localizedDescription])
     }
     
     // MARK: - Notification Callbacks
@@ -138,8 +126,26 @@ public class IosPushPlugin: NSObject, FlutterPlugin, UNUserNotificationCenterDel
     public func userNotificationCenter(_ center: UNUserNotificationCenter,
                                        didReceive response: UNNotificationResponse,
                                        withCompletionHandler completionHandler: @escaping () -> Void) {
-        let content = response.notification.request.content
-        onMessageClick(content: content)
+        // 获取用户点击的动作标识
+        let actionId = response.actionIdentifier
+        
+        // 获取通知本身
+        let notification = response.notification
+        let content = notification.request.content
+        // 根据 actionIdentifier 处理不同情况
+        switch actionId {
+        case UNNotificationDefaultActionIdentifier:
+            // 用户点击通知打开 App
+            onMessageClick(content: content)
+            
+        case UNNotificationDismissActionIdentifier:
+            // 用户滑动或关闭通知
+            onMessageCancel(content: content)
+            
+        default:
+            // 自定义操作
+            Logger.log("Custom action: \(actionId)")
+        }
         completionHandler()
     }
     
@@ -147,36 +153,63 @@ public class IosPushPlugin: NSObject, FlutterPlugin, UNUserNotificationCenterDel
         Logger.log("Notification received: \(content)")
         // 通过回调发送到 Flutter
         
-        notificationReceiveCallback?(content.toJSONString())
-        channel.invokeMethod("onNotificationReceive", arguments: content.toJSONString())
-        // 清空
-        UserDefaults.standard.removeObject(forKey: "PendingNotification")
+        messageEventChannel.sendData(["type":"receive","content":content.toFullDictionary()].toJSONString())
     }
     private func onMessageClick(content: UNNotificationContent) {
         Logger.log("Notification received: \(content)")
         // 通过回调发送到 Flutter
+        messageEventChannel.sendData(["type":"click","content":content.toFullDictionary()].toJSONString())
         
-        notificationCallback?(content.toJSONString())
-        channel.invokeMethod("onNotificationClick", arguments: content.toJSONString())
-        // 清空
-        UserDefaults.standard.removeObject(forKey: "PendingNotification")
+        
+        
+        
     }
-    // 2️⃣ 在 Flutter 调用 setNotificationClickListener 时，触发冷启动通知
-    private func dispatchLaunchNotificationIfNeeded() {
-        guard let userInfo = UserDefaults.standard.object(forKey: "PendingNotification") else { return }
+    private func onMessageCancel(content: UNNotificationContent) {
+        Logger.log("Notification cancel: \(content)")
+        // 通过回调发送到 Flutter
         
-        Logger.log("Dispatching cold-start notification: \(userInfo)")
-        let content = ["userInfo":userInfo]
-        // 先调用 Flutter 回调
-        notificationCallback?(content.toJSONString())
+        messageEventChannel.sendData(["type":"cancel","content":content.toFullDictionary()].toJSONString())
         
-        // 通过 channel 发送给 Flutter
-        channel.invokeMethod("onNotificationClick", arguments: content.toJSONString())
         
-        // 清空
-        UserDefaults.standard.removeObject(forKey: "PendingNotification")
+        
+    }
+    
+    
+}
+// MARK: - AppDelegate Hooks
+extension IosPushPlugin {
+    
+    /// 冷启动 / 热启动通知
+    public func application(
+        _ application: UIApplication,
+        didFinishLaunchingWithOptions launchOptions: [AnyHashable : Any] = [:]
+    ) -> Bool {
+        // 1️⃣ 检查 App 是不是因为通知启动的
+        if let launchNotification = launchOptions[UIApplication.LaunchOptionsKey.remoteNotification] as? [AnyHashable: Any] {
+            Logger.log("Cold start notification: \(launchNotification)")
+            // 缓存通知，等 Flutter EventChannel 初始化再发送
+        }
+        return true
+    }
+    
+    /// 前台/后台静默推送（iOS 7+）或带 content-available 的推送
+    public func application(
+        _ application: UIApplication,
+        didReceiveRemoteNotification userInfo: [AnyHashable : Any],
+        fetchCompletionHandler completionHandler: @escaping (UIBackgroundFetchResult) -> Void
+    ) -> Bool {
+        Logger.log("Received remote notification: \(userInfo)")
+        
+        // 通过 EventChannel 或 MethodChannel 派发给 Flutter
+        messageEventChannel.sendData(["type":"receive","content":["userInfo":userInfo]].toJSONString())
+        
+        
+        // 完成处理
+        completionHandler(.newData)
+        return true
     }
 }
+
 extension UNNotificationCategoryOptions {
     static let stringToValue: [String: UNNotificationCategoryOptions] = {
         var r: [String: UNNotificationCategoryOptions] = [:]
@@ -270,4 +303,28 @@ extension Dictionary where Key == String {
         
         return json
     }
+}
+class MessageEventChannel: NSObject, FlutterStreamHandler{
+    private var sink:FlutterEventSink? = nil
+    private var messageWhenAppKilled: String? = nil
+    func onListen(withArguments arguments: Any?, eventSink events: @escaping FlutterEventSink) -> FlutterError? {
+        sink = events
+        if let mess = messageWhenAppKilled {
+            sendData(mess)
+        }
+        return nil
+    }
+    
+    func onCancel(withArguments arguments: Any?) -> FlutterError? {
+        sink = nil
+        return nil
+    }
+    func sendData(_ data:String?) {
+        if sink == nil {
+            messageWhenAppKilled = data
+        }
+        if data == nil {return}
+        self.sink?(data)
+    }
+    
 }

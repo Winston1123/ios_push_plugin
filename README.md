@@ -7,21 +7,22 @@
 
 ## ✨ 特性 (Features)
 
-✅ 一行代码初始化推送  
-✅ 异步获取注册 ID (`getRegId`)  
-✅ 通知点击事件回调 (`clickNotifications` / `getClickNotification`)  
-✅ 通知接收事件回调 (`receiveNotifications` / `getReceiveNotification`)  
-✅ Stream 版本持续监听推送，适合实时 UI 更新  
-✅ Future 版本一次性回调，获取完成后自动取消监听  
-✅ 错误捕获回调 (`onError`)  
-✅ 日志可控 (`enableLog`)  
-✅ 自动反序列化 `NotificationContent`，包括 `payload` 和 `custom_data`
+- ✅ 一行代码初始化推送服务 (`initPush`)  
+- ✅ 持续监听推送事件 (`onMessage` Stream)  
+  - Stream 版本：实时更新 UI  
+  - Future 版本：一次性回调，自动取消监听  
+- ✅ 错误捕获回调 (`onError`)  
+- ✅ 插件日志可控 (`enableLog`)  
+- ✅ 自动反序列化 `NotificationContent`  
+  - 包含 `payload` 和 `custom_data`  
+- ✅ 请求通知权限 (`requestPermission`)  
+- ✅ 获取设备制造商信息 (`getManufacturer`)  
+- ✅ 手动触发注册流程 (`register`)  
 
----
 
 ## ⚙️ 安装 (Installation)
 
 ```yaml
 dependencies:
-  ios_push_plugin: ^0.1.0
+  ios_push_plugin: ^0.1.1
 ```

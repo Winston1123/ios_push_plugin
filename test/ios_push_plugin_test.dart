@@ -21,59 +21,33 @@ class MockIosPushPluginPlatform
     throw UnimplementedError();
   }
 
-  @override
-  Future<String?> getRegId() {
-    // TODO: implement getRegId
-    throw UnimplementedError();
-  }
+  
 
   @override
   Future initPush() {
     // TODO: implement initPush
     throw UnimplementedError();
   }
-
+  
   @override
-  void setNotificationClickListener(Function(dynamic p1) onNotificationClick) {
-    // TODO: implement setNotificationClickListener
+  // TODO: implement onMessage
+  Stream get onMessage => throw UnimplementedError();
+  
+  @override
+  Future<dynamic> register() {
+    // TODO: implement register
+    throw UnimplementedError();
+  }
+  
+  @override
+  Future<bool> requestPermission() {
+    // TODO: implement requestPermission
+    throw UnimplementedError();
   }
 
-  @override
-  void setErrorListener(ErrorCallback callback) {
-    // TODO: implement setErrorListener
-  }
+ 
 
-  @override
-  void setRegIdListener(RegIdCallback callback) {
-    // TODO: implement setRegIdListener
-  }
-
-  @override
-  void setNotificationReceiveListener(
-    Function(dynamic p1) onNotificationReceive,
-  ) {
-    // TODO: implement setNotificationReceiveListener
-  }
-
-  @override
-  void removeErrorListener() {
-    // TODO: implement removeErrorListener
-  }
-
-  @override
-  void removeNotificationClickListener() {
-    // TODO: implement removeNotificationClickListener
-  }
-
-  @override
-  void removeNotificationReceiveListener() {
-    // TODO: implement removeNotificationReceiveListener
-  }
-
-  @override
-  void removeRegIdListener() {
-    // TODO: implement removeRegIdListener
-  }
+  
 }
 
 void main() {
@@ -84,7 +58,7 @@ void main() {
   });
 
   test('getPlatformVersion', () async {
-    IosPushPlugin iosPushPlugin = IosPushPlugin();
+    IosPushPlugin iosPushPlugin = IosPushPlugin.instance;
     MockIosPushPluginPlatform fakePlatform = MockIosPushPluginPlatform();
     IosPushPluginPlatform.instance = fakePlatform;
 

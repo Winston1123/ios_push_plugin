@@ -1,5 +1,3 @@
-import 'dart:convert';
-
 import 'package:flutter/material.dart';
 import 'dart:async';
 
@@ -25,7 +23,7 @@ class _MyAppState extends State<MyApp> {
   String _lastMessage = '无推送消息';
   bool _isInit = false;
 
-  final _iosPushPlugin = IosPushPlugin();
+  final _iosPushPlugin = IosPushPlugin.instance;
 
   @override
   void initState() {
@@ -46,32 +44,35 @@ class _MyAppState extends State<MyApp> {
   }
 
   /// 初始化推送
+  /// 初始化 iOS 推送服务
   Future<void> initPushService() async {
-    // 开启日志
-    IosPushPlugin.enableLog(true);
+    try {
+      // 开启日志
+      IosPushPlugin.instance.enableLog(true);
+      debugPrint('📢 [IosPush] 日志已启用');
 
-    // 设置回调
-    IosPushPlugin.setOnRegId((id) {
-      setState(() => _regId = id);
-      debugPrint('✅ onRegId 回调: $id');
-    });
+      // 请求权限
+      final granted = await IosPushPlugin.instance.requestPermission();
+      if (!granted) {
+        debugPrint('⚠️ [IosPush] 用户拒绝通知权限');
+        return;
+      }
 
-    IosPushPlugin.setOnError((err) {
-      debugPrint('❌ onError 回调: $err');
-    });
-    IosPushPlugin.setOnReceiveNotification((data) {
-      debugPrint('🔔 通知收到: $data');
-      setState(() => _lastMessage = jsonEncode(data));
-    });
-    IosPushPlugin.setOnClickNotification((data) {
-      debugPrint('🔔 通知点击: $data');
-      setState(() => _lastMessage = jsonEncode(data));
-    });
+      // 初始化推送
+      await IosPushPlugin.instance.initPush();
+      final regId = await IosPushPlugin.instance.register();
+      debugPrint('注册设备 token: $regId');
 
-    // 初始化推送服务
-    final result = await IosPushPlugin.initPush();
-    debugPrint('🚀 initPush 结果: $result');
-    setState(() => _isInit = true);
+      // 监听消息
+      IosPushPlugin.instance.onMessage.listen((event) {
+        debugPrint('📩 收到推送消息: $event');
+      });
+
+      setState(() => _isInit = true);
+    } catch (e, s) {
+      debugPrint('❌ [IosPush] 初始化失败: $e');
+      debugPrintStack(stackTrace: s);
+    }
   }
 
   @override
